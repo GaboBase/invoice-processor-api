@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard de Facturas - Invoice Processor</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: white;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+
+    h1 {
+      color: #667eea;
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 1.1rem;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .stat-value {
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: #667eea;
+      margin-bottom: 5px;
+    }
+
+    .stat-label {
+      color: #666;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .invoices-section {
+      background: white;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    }
+
+    .section-title {
+      font-size: 1.8rem;
+      color: #333;
+      margin-bottom: 20px;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #667eea;
+      font-size: 1.2rem;
+    }
+
+    .invoice-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .invoice-table thead {
+      background: #f8f9fa;
+    }
+
+    .invoice-table th {
+      padding: 15px;
+      text-align: left;
+      font-weight: 600;
+      color: #333;
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    .invoice-table td {
+      padding: 15px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .invoice-table tr:hover {
+      background: #f8f9fa;
+    }
+
+    .status-badge {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .status-procesada {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-pendiente {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .status-error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .btn-view {
+      background: #667eea;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: background 0.3s ease;
+    }
+
+    .btn-view:hover {
+      background: #5568d3;
+    }
+
+    .refresh-btn {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 10px;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-bottom: 20px;
+      transition: background 0.3s ease;
+    }
+
+    .refresh-btn:hover {
+      background: #5568d3;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
+    }
+
+    .empty-state-icon {
+      font-size: 4rem;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 2rem;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .invoice-table {
+        font-size: 0.9rem;
+      }
+
+      .invoice-table th,
+      .invoice-table td {
+        padding: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📊 Dashboard de Facturas</h1>
+      <p class="subtitle">Sistema de Procesamiento Automático con Gemini AI</p>
+    </div>
+
+    <div class="stats-grid" id="stats">
+      <div class="stat-card">
+        <div class="stat-value" id="totalInvoices">0</div>
+        <div class="stat-label">Total Facturas</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="totalAmount">$0</div>
+        <div class="stat-label">Monto Total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="thisMonth">0</div>
+        <div class="stat-label">Este Mes</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="avgAmount">$0</div>
+        <div class="stat-label">Promedio</div>
+      </div>
+    </div>
+
+    <div class="invoices-section">
+      <button class="refresh-btn" onclick="loadInvoices()">↻ Actualizar Datos</button>
+      <h2 class="section-title">📄 Últimas Facturas Procesadas</h2>
+      <div id="invoicesContent">
+        <div class="loading">Cargando facturas...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Función para cargar facturas desde Notion
+    async function loadInvoices() {
+      const content = document.getElementById('invoicesContent');
+      content.innerHTML = '<div class="loading">Cargando facturas...</div>';
+
+      try {
+        // Llamar a la función de Apps Script
+        const invoices = await google.script.run
+          .withSuccessHandler(displayInvoices)
+          .withFailureHandler(handleError)
+          .getNotionInvoices();
+      } catch (error) {
+        handleError(error);
+      }
+    }
+
+    // Mostrar facturas en la tabla
+    function displayInvoices(invoices) {
+      const content = document.getElementById('invoicesContent');
+
+      if (!invoices || invoices.length === 0) {
+        content.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📄</div>
+            <h3>No hay facturas procesadas aún</h3>
+            <p>Sube una factura a Google Drive para comenzar</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Calcular estadísticas
+      updateStats(invoices);
+
+      // Generar tabla
+      let tableHTML = `
+        <table class="invoice-table">
+          <thead>
+            <tr>
+              <th>Emisor</th>
+              <th>RUT</th>
+              <th>Número</th>
+              <th>Fecha</th>
+              <th>Monto</th>
+              <th>Estado</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      invoices.forEach(invoice => {
+        const props = invoice.properties;
+        const emisor = props.Emisor?.title[0]?.text?.content || 'N/A';
+        const rut = props['RUT Emisor']?.rich_text[0]?.text?.content || 'N/A';
+        const numero = props['Número Factura']?.rich_text[0]?.text?.content || 'N/A';
+        const fecha = props['Fecha Emisión']?.date?.start || 'N/A';
+        const monto = props['Monto Total']?.number || 0;
+        const estado = props.Estado?.select?.name || 'Pendiente';
+        const archivo = props.Archivo?.url || '#';
+
+        const statusClass = estado === 'Procesada' ? 'status-procesada' : 
+                           estado === 'Pendiente' ? 'status-pendiente' : 'status-error';
+
+        tableHTML += `
+          <tr>
+            <td><strong>${emisor}</strong></td>
+            <td>${rut}</td>
+            <td>${numero}</td>
+            <td>${formatDate(fecha)}</td>
+            <td><strong>${formatCurrency(monto)}</strong></td>
+            <td><span class="status-badge ${statusClass}">${estado}</span></td>
+            <td><a href="${archivo}" target="_blank" class="btn-view">Ver</a></td>
+          </tr>
+        `;
+      });
+
+      tableHTML += '</tbody></table>';
+      content.innerHTML = tableHTML;
+    }
+
+    // Actualizar estadísticas
+    function updateStats(invoices) {
+      const total = invoices.length;
+      const totalAmount = invoices.reduce((sum, inv) => {
+        return sum + (inv.properties['Monto Total']?.number || 0);
+      }, 0);
+
+      const thisMonthCount = invoices.filter(inv => {
+        const fecha = inv.properties['Fecha Emisión']?.date?.start;
+        if (!fecha) return false;
+        const invoiceDate = new Date(fecha);
+        const now = new Date();
+        return invoiceDate.getMonth() === now.getMonth() && 
+               invoiceDate.getFullYear() === now.getFullYear();
+      }).length;
+
+      const avgAmount = total > 0 ? totalAmount / total : 0;
+
+      document.getElementById('totalInvoices').textContent = total;
+      document.getElementById('totalAmount').textContent = formatCurrency(totalAmount);
+      document.getElementById('thisMonth').textContent = thisMonthCount;
+      document.getElementById('avgAmount').textContent = formatCurrency(avgAmount);
+    }
+
+    // Formatear moneda
+    function formatCurrency(amount) {
+      return new Intl.NumberFormat('es-CL', {
+        style: 'currency',
+        currency: 'CLP'
+      }).format(amount);
+    }
+
+    // Formatear fecha
+    function formatDate(dateString) {
+      if (!dateString || dateString === 'N/A') return 'N/A';
+      const date = new Date(dateString);
+      return new Intl.DateFormat('es-CL', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      }).format(date);
+    }
+
+    // Manejar errores
+    function handleError(error) {
+      console.error('Error:', error);
+      const content = document.getElementById('invoicesContent');
+      content.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">⚠️</div>
+          <h3>Error al cargar facturas</h3>
+          <p>${error.message || 'Intenta nuevamente'}</p>
+          <button class="refresh-btn" onclick="loadInvoices()">Reintentar</button>
+        </div>
+      `;
+    }
+
+    // Cargar facturas al iniciar
+    window.onload = function() {
+      loadInvoices();
+    };
+  </script>
+</body>
+</html>
